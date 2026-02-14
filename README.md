@@ -102,6 +102,8 @@ Workflow behavior:
 2. GitHub Actions builds the AppImage.
 3. The AppImage is uploaded to that tag's Release automatically.
 
+Recommended release tags use semver (`vMAJOR.MINOR.PATCH`), for example `v0.2.0`.
+
 ## Data Storage
 
 Under `QStandardPaths::AppDataLocation`:
