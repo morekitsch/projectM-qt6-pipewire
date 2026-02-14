@@ -101,6 +101,7 @@ Workflow behavior:
 1. Push a tag like `v0.1.0`.
 2. GitHub Actions builds the AppImage.
 3. The AppImage is uploaded to that tag's Release automatically.
+4. If `projectM-4` dev files are unavailable on the runner, CI builds `libprojectM` v4 from source first.
 
 Recommended release tags use semver (`vMAJOR.MINOR.PATCH`), for example `v0.2.0`.
 

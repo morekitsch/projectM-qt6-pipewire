@@ -24,6 +24,7 @@ jobs:
             build-essential \
             cmake \
             curl \
+            git \
             ninja-build \
             pkg-config \
             qt6-base-dev \
@@ -31,6 +32,31 @@ jobs:
           if apt-cache show libprojectm-dev >/dev/null 2>&1; then
             sudo apt-get install -y libprojectm-dev
           fi
+
+      - name: Ensure projectM-4 Development Files
+        run: |
+          if pkg-config --exists projectM-4; then
+            echo "projectM-4 already available: $(pkg-config --modversion projectM-4)"
+            exit 0
+          fi
+
+          echo "projectM-4 not found via pkg-config; building libprojectM v4 from source..."
+          sudo apt-get install -y \
+            libgl1-mesa-dev \
+            libglm-dev \
+            mesa-common-dev
+
+          git clone --depth 1 --branch v4.1.6 https://github.com/projectM-visualizer/projectm /tmp/projectm-src
+          cmake -S /tmp/projectm-src -B /tmp/projectm-src/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=OFF \
+            -DENABLE_SDL_UI=OFF \
+            -DCMAKE_INSTALL_PREFIX=/usr/local
+          cmake --build /tmp/projectm-src/build --parallel
+          sudo cmake --install /tmp/projectm-src/build
+          sudo ldconfig
+
+          pkg-config --modversion projectM-4
 
       - name: Build AppImage
         run: |
