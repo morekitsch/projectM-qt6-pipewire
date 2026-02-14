@@ -138,6 +138,10 @@ QVariantMap SettingsManager::loadProjectMSettings() const {
   map.insert(QStringLiteral("beatSensitivity"), settings.value(QStringLiteral("beatSensitivity"), 1.0));
   map.insert(QStringLiteral("hardCutEnabled"), settings.value(QStringLiteral("hardCutEnabled"), true));
   map.insert(QStringLiteral("hardCutDuration"), settings.value(QStringLiteral("hardCutDuration"), 20));
+  map.insert(QStringLiteral("upscalerPreset"), settings.value(QStringLiteral("upscalerPreset"), QStringLiteral("balanced")));
+  map.insert(QStringLiteral("renderScalePercent"), settings.value(QStringLiteral("renderScalePercent"), 77));
+  map.insert(QStringLiteral("upscalerSharpness"), settings.value(QStringLiteral("upscalerSharpness"), 0.2));
+  map.insert(QStringLiteral("gpuPreference"), settings.value(QStringLiteral("gpuPreference"), QStringLiteral("dgpu")));
   map.insert(QStringLiteral("audioDeviceId"), settings.value(QStringLiteral("audioDeviceId"), QString()));
 
   settings.endGroup();

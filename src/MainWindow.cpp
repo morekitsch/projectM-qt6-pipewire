@@ -55,6 +55,46 @@ QString playlistFallbackName(const QString &filePath) {
   return QFileInfo(filePath).completeBaseName();
 }
 
+bool upscalerPresetValues(const QString &presetId, int *scalePercent, double *sharpness) {
+  if (scalePercent == nullptr || sharpness == nullptr) {
+    return false;
+  }
+
+  const QString normalized = presetId.trimmed().toLower();
+  if (normalized == QStringLiteral("quality")) {
+    *scalePercent = 85;
+    *sharpness = 0.15;
+    return true;
+  }
+  if (normalized == QStringLiteral("balanced")) {
+    *scalePercent = 77;
+    *sharpness = 0.20;
+    return true;
+  }
+  if (normalized == QStringLiteral("performance")) {
+    *scalePercent = 67;
+    *sharpness = 0.25;
+    return true;
+  }
+  return false;
+}
+
+QString detectUpscalerPresetId(int scalePercent, double sharpness) {
+  struct Candidate {
+    const char *id;
+  };
+  const Candidate candidates[] = {{"quality"}, {"balanced"}, {"performance"}};
+  for (const Candidate &candidate : candidates) {
+    int presetScale = 0;
+    double presetSharpness = 0.0;
+    if (upscalerPresetValues(QString::fromLatin1(candidate.id), &presetScale, &presetSharpness) &&
+        presetScale == scalePercent && qFuzzyCompare(1.0 + presetSharpness, 1.0 + sharpness)) {
+      return QString::fromLatin1(candidate.id);
+    }
+  }
+  return QStringLiteral("custom");
+}
+
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
@@ -280,6 +320,22 @@ void MainWindow::buildUi() {
   m_hardCutEnabledCheck = new QCheckBox(settingsTab);
   m_hardCutDurationSpin = new QSpinBox(settingsTab);
   m_hardCutDurationSpin->setRange(1, 120);
+  m_upscalePresetCombo = new QComboBox(settingsTab);
+  m_upscalePresetCombo->addItem(QStringLiteral("Quality"), QStringLiteral("quality"));
+  m_upscalePresetCombo->addItem(QStringLiteral("Balanced"), QStringLiteral("balanced"));
+  m_upscalePresetCombo->addItem(QStringLiteral("Performance"), QStringLiteral("performance"));
+  m_upscalePresetCombo->addItem(QStringLiteral("Custom"), QStringLiteral("custom"));
+  m_renderScaleSpin = new QSpinBox(settingsTab);
+  m_renderScaleSpin->setRange(50, 100);
+  m_renderScaleSpin->setSuffix(QStringLiteral("%"));
+  m_upscaleSharpnessSpin = new QDoubleSpinBox(settingsTab);
+  m_upscaleSharpnessSpin->setRange(0.0, 1.0);
+  m_upscaleSharpnessSpin->setDecimals(2);
+  m_upscaleSharpnessSpin->setSingleStep(0.05);
+  m_gpuPreferenceCombo = new QComboBox(settingsTab);
+  m_gpuPreferenceCombo->addItem(QStringLiteral("Auto (system default)"), QStringLiteral("auto"));
+  m_gpuPreferenceCombo->addItem(QStringLiteral("Discrete GPU (dGPU)"), QStringLiteral("dgpu"));
+  m_gpuPreferenceCombo->addItem(QStringLiteral("Integrated GPU (iGPU)"), QStringLiteral("igpu"));
   m_audioDeviceCombo = new QComboBox(settingsTab);
   m_audioDeviceCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
   m_refreshAudioDevicesButton = new QPushButton(QStringLiteral("Refresh"), settingsTab);
@@ -296,6 +352,10 @@ void MainWindow::buildUi() {
   form->addRow(QStringLiteral("Beat Sensitivity"), m_beatSensitivitySpin);
   form->addRow(QStringLiteral("Hard Cut Enabled"), m_hardCutEnabledCheck);
   form->addRow(QStringLiteral("Hard Cut Duration (s)"), m_hardCutDurationSpin);
+  form->addRow(QStringLiteral("Upscaler Preset"), m_upscalePresetCombo);
+  form->addRow(QStringLiteral("Render Scale"), m_renderScaleSpin);
+  form->addRow(QStringLiteral("Upscale Sharpness"), m_upscaleSharpnessSpin);
+  form->addRow(QStringLiteral("GPU Preference (restart app)"), m_gpuPreferenceCombo);
   form->addRow(QStringLiteral("Audio Input"), audioDeviceRowWidget);
 
   settingsLayout->addLayout(form);
@@ -374,6 +434,65 @@ void MainWindow::buildUi() {
     }
   });
   connect(m_nowPlayingTagsEdit, &QLineEdit::editingFinished, this, &MainWindow::applyNowPlayingMetadata);
+
+  connect(m_upscalePresetCombo,
+          qOverload<int>(&QComboBox::currentIndexChanged),
+          this,
+          [this](int) {
+            if (m_syncingUpscalerPresetUi || m_upscalePresetCombo == nullptr || m_renderScaleSpin == nullptr ||
+                m_upscaleSharpnessSpin == nullptr) {
+              return;
+            }
+
+            const QString presetId = m_upscalePresetCombo->currentData().toString().trimmed().toLower();
+            int presetScale = 0;
+            double presetSharpness = 0.0;
+            if (!upscalerPresetValues(presetId, &presetScale, &presetSharpness)) {
+              return;
+            }
+
+            m_syncingUpscalerPresetUi = true;
+            {
+              const QSignalBlocker scaleBlocker(m_renderScaleSpin);
+              const QSignalBlocker sharpnessBlocker(m_upscaleSharpnessSpin);
+              m_renderScaleSpin->setValue(presetScale);
+              m_upscaleSharpnessSpin->setValue(presetSharpness);
+            }
+            m_syncingUpscalerPresetUi = false;
+            applyProjectMSettingsFromUi();
+          });
+
+  connect(m_renderScaleSpin,
+          qOverload<int>(&QSpinBox::valueChanged),
+          this,
+          [this](int) {
+            if (m_syncingUpscalerPresetUi || m_upscalePresetCombo == nullptr || m_upscaleSharpnessSpin == nullptr) {
+              return;
+            }
+            const QString detected =
+                detectUpscalerPresetId(m_renderScaleSpin->value(), m_upscaleSharpnessSpin->value());
+            const int idx = m_upscalePresetCombo->findData(detected);
+            if (idx >= 0 && idx != m_upscalePresetCombo->currentIndex()) {
+              const QSignalBlocker blocker(m_upscalePresetCombo);
+              m_upscalePresetCombo->setCurrentIndex(idx);
+            }
+          });
+
+  connect(m_upscaleSharpnessSpin,
+          qOverload<double>(&QDoubleSpinBox::valueChanged),
+          this,
+          [this](double) {
+            if (m_syncingUpscalerPresetUi || m_upscalePresetCombo == nullptr || m_renderScaleSpin == nullptr) {
+              return;
+            }
+            const QString detected =
+                detectUpscalerPresetId(m_renderScaleSpin->value(), m_upscaleSharpnessSpin->value());
+            const int idx = m_upscalePresetCombo->findData(detected);
+            if (idx >= 0 && idx != m_upscalePresetCombo->currentIndex()) {
+              const QSignalBlocker blocker(m_upscalePresetCombo);
+              m_upscalePresetCombo->setCurrentIndex(idx);
+            }
+          });
 
   connect(applySettingsButton, &QPushButton::clicked, this, &MainWindow::applyProjectMSettingsFromUi);
   connect(m_refreshAudioDevicesButton, &QPushButton::clicked, this, &MainWindow::refreshAudioDeviceList);
@@ -481,6 +600,30 @@ void MainWindow::loadInitialState() {
   m_beatSensitivitySpin->setValue(projectMSettings.value(QStringLiteral("beatSensitivity"), 1.0).toDouble());
   m_hardCutEnabledCheck->setChecked(projectMSettings.value(QStringLiteral("hardCutEnabled"), true).toBool());
   m_hardCutDurationSpin->setValue(projectMSettings.value(QStringLiteral("hardCutDuration"), 20).toInt());
+  m_renderScaleSpin->setValue(projectMSettings.value(QStringLiteral("renderScalePercent"), 77).toInt());
+  m_upscaleSharpnessSpin->setValue(projectMSettings.value(QStringLiteral("upscalerSharpness"), 0.2).toDouble());
+  QString upscalerPreset = projectMSettings.value(QStringLiteral("upscalerPreset"), QStringLiteral("balanced"))
+                               .toString()
+                               .trimmed()
+                               .toLower();
+  if (m_upscalePresetCombo != nullptr) {
+    const int explicitPresetIndex = m_upscalePresetCombo->findData(upscalerPreset);
+    if (explicitPresetIndex < 0) {
+      upscalerPreset = detectUpscalerPresetId(m_renderScaleSpin->value(), m_upscaleSharpnessSpin->value());
+    }
+    const int presetIndex = m_upscalePresetCombo->findData(upscalerPreset);
+    if (presetIndex >= 0) {
+      const QSignalBlocker blocker(m_upscalePresetCombo);
+      m_upscalePresetCombo->setCurrentIndex(presetIndex);
+    }
+  }
+  const QString gpuPreference = projectMSettings.value(QStringLiteral("gpuPreference"), QStringLiteral("dgpu"))
+                                    .toString()
+                                    .trimmed()
+                                    .toLower();
+  const int gpuPreferenceIndex = m_gpuPreferenceCombo->findData(gpuPreference);
+  m_gpuPreferenceCombo->setCurrentIndex(gpuPreferenceIndex >= 0 ? gpuPreferenceIndex : 1);
+  m_appliedGpuPreference = m_gpuPreferenceCombo->currentData().toString();
   m_preferredAudioDeviceId = projectMSettings.value(QStringLiteral("audioDeviceId")).toString().trimmed();
 
   applyProjectMSettingsFromUi();
@@ -744,6 +887,19 @@ void MainWindow::exportPresetMetadata() {
 }
 
 void MainWindow::applyProjectMSettingsFromUi() {
+  QString gpuPreference = m_gpuPreferenceCombo != nullptr
+                              ? m_gpuPreferenceCombo->currentData().toString().trimmed().toLower()
+                              : QStringLiteral("dgpu");
+  if (gpuPreference.isEmpty()) {
+    gpuPreference = QStringLiteral("dgpu");
+  }
+  QString upscalerPreset = m_upscalePresetCombo != nullptr
+                               ? m_upscalePresetCombo->currentData().toString().trimmed().toLower()
+                               : QStringLiteral("balanced");
+  if (upscalerPreset.isEmpty()) {
+    upscalerPreset = QStringLiteral("balanced");
+  }
+
   QVariantMap map;
   map.insert(QStringLiteral("meshX"), m_meshXSpin->value());
   map.insert(QStringLiteral("meshY"), m_meshYSpin->value());
@@ -751,10 +907,24 @@ void MainWindow::applyProjectMSettingsFromUi() {
   map.insert(QStringLiteral("beatSensitivity"), m_beatSensitivitySpin->value());
   map.insert(QStringLiteral("hardCutEnabled"), m_hardCutEnabledCheck->isChecked());
   map.insert(QStringLiteral("hardCutDuration"), m_hardCutDurationSpin->value());
+  map.insert(QStringLiteral("upscalerPreset"), upscalerPreset);
+  map.insert(QStringLiteral("renderScalePercent"), m_renderScaleSpin->value());
+  map.insert(QStringLiteral("upscalerSharpness"), m_upscaleSharpnessSpin->value());
+  map.insert(QStringLiteral("gpuPreference"), gpuPreference);
   map.insert(QStringLiteral("audioDeviceId"), m_preferredAudioDeviceId);
 
+  if (m_visualizerWidget != nullptr) {
+    m_visualizerWidget->setRenderScalePercent(m_renderScaleSpin->value());
+    m_visualizerWidget->setUpscaleSharpness(m_upscaleSharpnessSpin->value());
+  }
+
+  const bool gpuPreferenceChanged = (m_appliedGpuPreference != gpuPreference);
+  m_appliedGpuPreference = gpuPreference;
   m_settingsManager->saveProjectMSettings(map);
   m_projectMEngine->applySettings(map);
+  if (gpuPreferenceChanged) {
+    setStatus(QStringLiteral("Saved GPU preference. Restart app to apply renderer device change."));
+  }
 }
 
 void MainWindow::togglePlaylistPlayback() {
@@ -1038,6 +1208,16 @@ void MainWindow::updateAudioDeviceDebugPanel(const QVector<AudioDeviceInfo> &dev
       m_preferredAudioDeviceId.isEmpty() ? QStringLiteral("<default>") : m_preferredAudioDeviceId;
   lines << QStringLiteral("Backend: %1").arg(backend);
   lines << QStringLiteral("Selected device id: %1").arg(selectedId);
+  if (m_upscalePresetCombo != nullptr) {
+    lines << QStringLiteral("Upscaler preset: %1").arg(m_upscalePresetCombo->currentText());
+  }
+  lines << QStringLiteral("Render scale: %1%").arg(m_renderScaleSpin != nullptr ? m_renderScaleSpin->value() : 100);
+  if (m_gpuPreferenceCombo != nullptr) {
+    lines << QStringLiteral("GPU preference: %1").arg(m_gpuPreferenceCombo->currentText());
+  }
+  const QString activeDriPrime = qEnvironmentVariable("DRI_PRIME");
+  lines << QStringLiteral("DRI_PRIME (current process): %1")
+               .arg(activeDriPrime.isEmpty() ? QStringLiteral("<unset>") : activeDriPrime);
   lines << QStringLiteral("Discovered devices: %1").arg(devices.size());
   lines << QString();
 

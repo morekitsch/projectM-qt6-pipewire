@@ -129,6 +129,10 @@ private:
   QDoubleSpinBox *m_beatSensitivitySpin = nullptr;
   QCheckBox *m_hardCutEnabledCheck = nullptr;
   QSpinBox *m_hardCutDurationSpin = nullptr;
+  QComboBox *m_upscalePresetCombo = nullptr;
+  QSpinBox *m_renderScaleSpin = nullptr;
+  QDoubleSpinBox *m_upscaleSharpnessSpin = nullptr;
+  QComboBox *m_gpuPreferenceCombo = nullptr;
 
   QTimer *m_playbackTimer = nullptr;
   QElapsedTimer m_trackElapsed;
@@ -141,5 +145,7 @@ private:
   QWidget *m_previewHiddenTitleBar = nullptr;
   bool m_audioFallbackApplied = false;
   bool m_syncingAudioDeviceUi = false;
+  bool m_syncingUpscalerPresetUi = false;
   QString m_preferredAudioDeviceId;
+  QString m_appliedGpuPreference;
 };

@@ -23,6 +23,8 @@ chmod +x qt6mplayer-*.AppImage
 1. Open **Settings**.
 2. In **Audio Input**, click **Refresh**.
 3. Pick one device and keep it.
+4. If fullscreen is too heavy, pick an **Upscaler Preset** (Quality/Balanced/Performance), then fine-tune **Render Scale** and **Upscale Sharpness** if needed.
+5. Choose **GPU Preference** if you have multiple GPUs (restart required).
 
 The selected input is persisted and reused on next launches.
 
@@ -35,6 +37,9 @@ The selected input is persisted and reused on next launches.
 
 - If PipeWire is unavailable, app falls back to dummy audio input.
 - Provide your own preset folder (for example `~/.projectM/presets`) and select it in the UI.
+- GPU preference is applied at startup via PRIME-related env vars (`DRI_PRIME`, and for NVIDIA systems
+  `__NV_PRIME_RENDER_OFFLOAD` / `__GLX_VENDOR_LIBRARY_NAME`) when those vars are not already set externally.
+- You can override GPU choice per launch with `QT6MPLAYER_GPU=auto|dgpu|igpu`.
 
 ## For Developers
 
@@ -120,5 +125,6 @@ Under `QStandardPaths::AppDataLocation`:
 - Playlist save/load/import/export and playback controls
 - projectM OpenGL render path with fallback renderer
 - Floatable/fullscreen preview dock and FPS overlay
+- Render-scale upscaling path for fullscreen performance tuning
 - PipeWire audio input backend with dummy fallback
 - Settings-tab audio device picker and debug panel
