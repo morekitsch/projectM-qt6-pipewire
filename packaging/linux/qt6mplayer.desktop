@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=qt6mplayer
+Comment=Qt6 projectM visualizer with PipeWire audio input
+Exec=qt6mplayer
+Icon=qt6mplayer
+Terminal=false
+Categories=AudioVideo;Audio;
+Keywords=visualizer;projectm;pipewire;music;

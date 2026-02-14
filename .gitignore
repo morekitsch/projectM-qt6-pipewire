@@ -1,0 +1,21 @@
+# Build artifacts
+/build/
+/build-appimage/
+/AppDir/
+/dist/
+/presets/
+
+# Tool downloads/cache
+/tools/
+
+# Generated AppImage outputs
+/*.AppImage
+
+# Local/editor artifacts
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local agent instructions
+AGENTS.md
