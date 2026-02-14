@@ -16,6 +16,7 @@
 #include <QCoreApplication>
 #include <QDockWidget>
 #include <QDir>
+#include <QDebug>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -322,9 +323,11 @@ void MainWindow::buildUi() {
   m_previewDock = new QDockWidget(QStringLiteral("Preview"), this);
   m_previewDock->setAllowedAreas(Qt::AllDockWidgetAreas);
   m_previewDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
-  m_visualizerWidget = new VisualizerWidget(m_projectMEngine, m_previewDock);
-  m_visualizerWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-  m_previewDock->setWidget(m_visualizerWidget);
+  m_visualizerWidget = new VisualizerWidget(m_projectMEngine);
+  m_visualizerContainer = QWidget::createWindowContainer(m_visualizerWidget, m_previewDock);
+  m_visualizerContainer->setFocusPolicy(Qt::StrongFocus);
+  m_visualizerContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  m_previewDock->setWidget(m_visualizerContainer);
   m_previewDock->setMinimumWidth(420);
   addDockWidget(Qt::RightDockWidgetArea, m_previewDock);
   resizeDocks({m_previewDock}, {520}, Qt::Horizontal);
@@ -948,6 +951,12 @@ void MainWindow::togglePreviewFullscreen() {
   if (!m_previewDock->isFloating()) {
     m_previewDock->setFloating(true);
     m_previewDock->resize(960, 540);
+    QTimer::singleShot(0, this, [this]() {
+      if (m_previewDock != nullptr && m_previewDock->isFloating()) {
+        togglePreviewFullscreen();
+      }
+    });
+    return;
   }
 
   QWidget *dockWindow = m_previewDock->window();
@@ -978,9 +987,11 @@ void MainWindow::togglePreviewFullscreen() {
   if (m_previewHiddenTitleBar != nullptr) {
     m_previewDock->setTitleBarWidget(m_previewHiddenTitleBar);
   }
+  dockWindow->setWindowFlag(Qt::Tool, false);
+  dockWindow->setWindowFlag(Qt::Window, true);
   dockWindow->setWindowFlag(Qt::FramelessWindowHint, true);
   m_previewBorderlessFullscreen = true;
-  dockWindow->show();
+  dockWindow->showNormal();
   dockWindow->showFullScreen();
   dockWindow->raise();
   m_previewFullscreenButton->setText(QStringLiteral("Exit Fullscreen"));
@@ -1236,4 +1247,7 @@ void MainWindow::updateNowPlayingPanel(const QString &presetPath) {
   m_syncingNowPlayingUi = false;
 }
 
-void MainWindow::setStatus(const QString &message) { statusBar()->showMessage(message, 5000); }
+void MainWindow::setStatus(const QString &message) {
+  statusBar()->showMessage(message, 5000);
+  qInfo().noquote() << "[qt6mplayer]" << message;
+}

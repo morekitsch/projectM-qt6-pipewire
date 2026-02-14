@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QOpenGLFunctions>
-#include <QOpenGLWidget>
+#include <QOpenGLWindow>
 #include <QElapsedTimer>
 #include <QResizeEvent>
 #include <QVector>
@@ -9,11 +9,11 @@
 class ProjectMEngine;
 class QTimer;
 
-class VisualizerWidget : public QOpenGLWidget, protected QOpenGLFunctions {
+class VisualizerWidget : public QOpenGLWindow, protected QOpenGLFunctions {
   Q_OBJECT
 
 public:
-  explicit VisualizerWidget(ProjectMEngine *engine, QWidget *parent = nullptr);
+  explicit VisualizerWidget(ProjectMEngine *engine, QWindow *parent = nullptr);
   ~VisualizerWidget() override;
 
 public Q_SLOTS:

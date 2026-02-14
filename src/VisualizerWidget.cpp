@@ -4,13 +4,12 @@
 
 #include <QOpenGLContext>
 #include <QPainter>
+#include <QRect>
 #include <QTimer>
 
-VisualizerWidget::VisualizerWidget(ProjectMEngine *engine, QWidget *parent)
-    : QOpenGLWidget(parent), m_engine(engine) {
-  setMinimumSize(420, 240);
-  setAutoFillBackground(false);
-  setAttribute(Qt::WA_OpaquePaintEvent, true);
+VisualizerWidget::VisualizerWidget(ProjectMEngine *engine, QWindow *parent)
+    : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent), m_engine(engine) {
+  setMinimumSize(QSize(420, 240));
 
   m_refreshTimer = new QTimer(this);
   m_refreshTimer->setInterval(16);
@@ -51,7 +50,7 @@ void VisualizerWidget::resizeGL(int w, int h) {
 }
 
 void VisualizerWidget::resizeEvent(QResizeEvent *event) {
-  QOpenGLWidget::resizeEvent(event);
+  QOpenGLWindow::resizeEvent(event);
   const int pixelWidth = qMax(1, static_cast<int>(width() * devicePixelRatioF()));
   const int pixelHeight = qMax(1, static_cast<int>(height() * devicePixelRatioF()));
   if (m_engine != nullptr) {
@@ -134,8 +133,9 @@ void VisualizerWidget::paintGL() {
   }
 
   if (m_showFps) {
+    const QRect drawRect(0, 0, width(), height());
     painter.setPen(QColor(235, 235, 235));
-    painter.drawText(rect().adjusted(0, 8, -10, 0), Qt::AlignTop | Qt::AlignRight,
+    painter.drawText(drawRect.adjusted(0, 8, -10, 0), Qt::AlignTop | Qt::AlignRight,
                      QStringLiteral("FPS: %1").arg(QString::number(m_fpsValue, 'f', 1)));
   }
 }

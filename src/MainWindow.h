@@ -120,6 +120,7 @@ private:
   QCheckBox *m_showFpsCheck = nullptr;
 
   VisualizerWidget *m_visualizerWidget = nullptr;
+  QWidget *m_visualizerContainer = nullptr;
   QDockWidget *m_previewDock = nullptr;
 
   QSpinBox *m_meshXSpin = nullptr;
