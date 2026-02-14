@@ -21,7 +21,7 @@ if(USE_PIPEWIRE AND PkgConfig_FOUND)
 endif()
 
 if(PkgConfig_FOUND)
-  pkg_check_modules(PROJECTM IMPORTED_TARGET projectM-4)
+  pkg_check_modules(PROJECTM QUIET projectM-4)
 endif()
 
 set(APP_SOURCES
@@ -79,7 +79,20 @@ else()
 endif()
 
 if(PROJECTM_FOUND)
-  target_link_libraries(qt6mplayer PRIVATE PkgConfig::PROJECTM)
+  find_library(PROJECTM4_LIBRARY
+    NAMES projectM-4 libprojectM-4
+    HINTS ${PROJECTM_LIBRARY_DIRS}
+  )
+
+  if(PROJECTM4_LIBRARY)
+    target_link_libraries(qt6mplayer PRIVATE ${PROJECTM4_LIBRARY})
+  else()
+    message(WARNING "Could not resolve libprojectM-4 path from system library dirs; falling back to pkg-config link flags.")
+    target_link_directories(qt6mplayer PRIVATE ${PROJECTM_LIBRARY_DIRS})
+    target_link_libraries(qt6mplayer PRIVATE ${PROJECTM_LDFLAGS})
+  endif()
+
+  target_include_directories(qt6mplayer PRIVATE ${PROJECTM_INCLUDE_DIRS})
   target_compile_definitions(qt6mplayer PRIVATE HAVE_PROJECTM=1)
   message(STATUS "projectM backend enabled (${PROJECTM_VERSION})")
 elseif(REQUIRE_PROJECTM)

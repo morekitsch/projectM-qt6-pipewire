@@ -94,11 +94,8 @@ bool ProjectMEngine::renderFrame(uint32_t framebufferObject) {
   }
 
   applyPendingState();
-  if (framebufferObject != 0U) {
-    projectm_opengl_render_frame_fbo(m_projectM, framebufferObject);
-  } else {
-    projectm_opengl_render_frame(m_projectM);
-  }
+  Q_UNUSED(framebufferObject);
+  projectm_opengl_render_frame(m_projectM);
   return true;
 #else
   Q_UNUSED(framebufferObject);
