@@ -47,6 +47,12 @@ cmake --build build
 ./build/qt6mplayer
 ```
 
+For projectM rendering support (required for release AppImages), install:
+
+```bash
+sudo pacman -S --needed libprojectm
+```
+
 #### Ubuntu/Debian (example)
 
 ```bash
@@ -74,6 +80,8 @@ The script auto-downloads official `linuxdeploy` and `linuxdeploy-plugin-qt` App
 if they are not already installed in `PATH`.
 
 It also downloads an AppImage runtime file (`runtime-<arch>`) into the same folder and passes it to linuxdeploy (`LDAI_RUNTIME_FILE`) to avoid runtime download failures inside appimagetool.
+
+By default the script enforces `projectM-4` availability (`REQUIRE_PROJECTM=1`) so release artifacts do not silently fall back to the non-projectM preview path.
 
 Compatibility note:
 

@@ -11,6 +11,7 @@ OUT_DIR="${OUT_DIR:-$ROOT_DIR/dist}"
 TOOLS_DIR="${TOOLS_DIR:-$ROOT_DIR/tools/linuxdeploy}"
 ARCH="${ARCH:-$(uname -m)}"
 VERSION="${VERSION:-$(date +%Y.%m.%d)}"
+REQUIRE_PROJECTM="${REQUIRE_PROJECTM:-1}"
 export APPIMAGE_EXTRACT_AND_RUN="${APPIMAGE_EXTRACT_AND_RUN:-1}"
 # Newer distro toolchains may emit RELR sections that old strip inside linuxdeploy can't handle.
 # Disable stripping by default for compatibility (can be overridden with NO_STRIP=0).
@@ -137,6 +138,7 @@ resolve_qmake_qt6() {
 
 require_cmd cmake
 require_cmd find
+require_cmd pkg-config
 
 case "$ARCH" in
   x86_64|aarch64) ;;
@@ -153,6 +155,14 @@ resolve_linuxdeploy_tools "$ARCH"
 resolve_appimage_runtime "$ARCH"
 resolve_qmake_qt6
 
+if [[ "$REQUIRE_PROJECTM" == "1" ]]; then
+  if ! pkg-config --exists projectM-4; then
+    echo "Missing required pkg-config module: projectM-4" >&2
+    echo "On Arch install: sudo pacman -S --needed libprojectm" >&2
+    exit 1
+  fi
+fi
+
 if [[ ! -f "$DESKTOP_FILE" ]]; then
   echo "Desktop file not found: $DESKTOP_FILE" >&2
   exit 1
@@ -164,7 +174,9 @@ if [[ ! -f "$ICON_FILE" ]]; then
 fi
 
 echo "[1/5] Configure"
-cmake -S "$ROOT_DIR" -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake -S "$ROOT_DIR" -B "$BUILD_DIR" -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DREQUIRE_PROJECTM="$REQUIRE_PROJECTM"
 
 echo "[2/5] Build"
 cmake --build "$BUILD_DIR"

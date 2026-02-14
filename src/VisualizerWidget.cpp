@@ -100,7 +100,7 @@ void VisualizerWidget::paintGL() {
 
   if (!renderedProjectM) {
     painter.setPen(QPen(QColor(60, 170, 245), 2));
-    painter.drawText(12, 22, QStringLiteral("Preview fallback (install libprojectM-4 dev package)"));
+    painter.drawText(12, 22, QStringLiteral("Preview fallback (projectM backend unavailable in this build)"));
 
     if (m_lastFrame.isEmpty()) {
       painter.setPen(QColor(190, 190, 190));
