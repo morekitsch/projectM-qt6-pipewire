@@ -73,6 +73,11 @@ The script auto-downloads official `linuxdeploy` and `linuxdeploy-plugin-qt` App
 
 if they are not already installed in `PATH`.
 
+Compatibility note:
+
+- The script sets `NO_STRIP=1` by default to avoid linuxdeploy strip failures on RELR-enabled binaries.
+- You can override this with `NO_STRIP=0 ./scripts/build-appimage.sh` if you explicitly want stripping.
+
 ### Release On GitHub
 
 This repo includes:

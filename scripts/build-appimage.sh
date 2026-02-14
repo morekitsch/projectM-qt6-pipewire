@@ -12,6 +12,9 @@ TOOLS_DIR="${TOOLS_DIR:-$ROOT_DIR/tools/linuxdeploy}"
 ARCH="${ARCH:-$(uname -m)}"
 VERSION="${VERSION:-$(date +%Y.%m.%d)}"
 export APPIMAGE_EXTRACT_AND_RUN="${APPIMAGE_EXTRACT_AND_RUN:-1}"
+# Newer distro toolchains may emit RELR sections that old strip inside linuxdeploy can't handle.
+# Disable stripping by default for compatibility (can be overridden with NO_STRIP=0).
+export NO_STRIP="${NO_STRIP:-1}"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
