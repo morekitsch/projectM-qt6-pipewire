@@ -92,18 +92,17 @@ Compatibility note:
 
 ### Release On GitHub
 
-This repo includes:
+Manual release flow:
 
-- `.github/workflows/release-appimage.yml`
+1. Build locally:
+   - `VERSION=<semver> ./scripts/build-appimage.sh`
+2. Create/push a tag, for example `v0.2.1`.
+3. Create or edit the GitHub release for that tag.
+4. Upload `dist/qt6mplayer-<version>-<arch>.AppImage` as the release asset.
 
-Workflow behavior:
+Optional helper workflow:
 
-1. Push a tag like `v0.1.0`.
-2. GitHub Actions builds the AppImage.
-3. The AppImage is uploaded to that tag's Release automatically.
-4. If `projectM-4` dev files are unavailable on the runner, CI builds `libprojectM` v4 from source first.
-
-Recommended release tags use semver (`vMAJOR.MINOR.PATCH`), for example `v0.2.0`.
+- `.github/workflows/release-appimage.yml` can be run manually (`workflow_dispatch`) to build an AppImage artifact in GitHub Actions.
 
 ## Data Storage
 
