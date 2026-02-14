@@ -2,6 +2,8 @@
 
 Qt6 desktop shell for [`projectM`](https://github.com/projectM-visualizer/projectm) with PipeWire audio input on Linux.
 
+![qt6mplayer screenshot](qt6-projectM-pipewire.png)
+
 ## For Users
 
 ### Download
