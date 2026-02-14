@@ -73,6 +73,8 @@ The script auto-downloads official `linuxdeploy` and `linuxdeploy-plugin-qt` App
 
 if they are not already installed in `PATH`.
 
+It also downloads an AppImage runtime file (`runtime-<arch>`) into the same folder and passes it to linuxdeploy (`LDAI_RUNTIME_FILE`) to avoid runtime download failures inside appimagetool.
+
 Compatibility note:
 
 - The script sets `NO_STRIP=1` by default to avoid linuxdeploy strip failures on RELR-enabled binaries.

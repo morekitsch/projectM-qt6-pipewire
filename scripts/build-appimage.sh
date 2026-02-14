@@ -83,6 +83,21 @@ resolve_linuxdeploy_tools() {
   export PATH="$TOOLS_DIR:$PATH"
 }
 
+resolve_appimage_runtime() {
+  local arch_label="$1"
+  local runtime_file="$TOOLS_DIR/runtime-${arch_label}"
+
+  if [[ ! -s "$runtime_file" ]]; then
+    echo "Downloading AppImage runtime for ${arch_label}..."
+    download_tool \
+      "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-${arch_label}" \
+      "$runtime_file"
+    chmod +x "$runtime_file" || true
+  fi
+
+  export LDAI_RUNTIME_FILE="$runtime_file"
+}
+
 resolve_qmake_qt6() {
   local candidates=()
 
@@ -135,6 +150,7 @@ esac
 LINUXDEPLOY_BIN=""
 LINUXDEPLOY_QT_PLUGIN_BIN=""
 resolve_linuxdeploy_tools "$ARCH"
+resolve_appimage_runtime "$ARCH"
 resolve_qmake_qt6
 
 if [[ ! -f "$DESKTOP_FILE" ]]; then
