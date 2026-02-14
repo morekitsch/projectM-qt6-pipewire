@@ -77,6 +77,8 @@ Compatibility note:
 
 - The script sets `NO_STRIP=1` by default to avoid linuxdeploy strip failures on RELR-enabled binaries.
 - You can override this with `NO_STRIP=0 ./scripts/build-appimage.sh` if you explicitly want stripping.
+- The script forces a Qt6 `qmake` (`qmake6`/`qmake-qt6`) to prevent linuxdeploy-plugin-qt from selecting Qt5.
+- The script sets a default `LINUXDEPLOY_EXCLUDED_LIBRARIES` list to skip known optional plugin deps that are often missing (`libjxrglue`/`kimg_jxr`).
 
 ### Release On GitHub
 

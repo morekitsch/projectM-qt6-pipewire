@@ -15,6 +15,14 @@ export APPIMAGE_EXTRACT_AND_RUN="${APPIMAGE_EXTRACT_AND_RUN:-1}"
 # Newer distro toolchains may emit RELR sections that old strip inside linuxdeploy can't handle.
 # Disable stripping by default for compatibility (can be overridden with NO_STRIP=0).
 export NO_STRIP="${NO_STRIP:-1}"
+# Some optional Qt imageformat plugins depend on libs not installed on all systems.
+# Exclude known problematic optional deps by default.
+DEFAULT_EXCLUDED_LIBS="libjxrglue.so*;kimg_jxr.so*"
+if [[ -n "${LINUXDEPLOY_EXCLUDED_LIBRARIES:-}" ]]; then
+  export LINUXDEPLOY_EXCLUDED_LIBRARIES="${LINUXDEPLOY_EXCLUDED_LIBRARIES};${DEFAULT_EXCLUDED_LIBS}"
+else
+  export LINUXDEPLOY_EXCLUDED_LIBRARIES="${DEFAULT_EXCLUDED_LIBS}"
+fi
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -75,6 +83,43 @@ resolve_linuxdeploy_tools() {
   export PATH="$TOOLS_DIR:$PATH"
 }
 
+resolve_qmake_qt6() {
+  local candidates=()
+
+  if [[ -n "${QMAKE:-}" ]]; then
+    candidates+=("$QMAKE")
+  fi
+
+  candidates+=("qmake6" "qmake-qt6" "/usr/lib/qt6/bin/qmake" "qmake")
+
+  for candidate in "${candidates[@]}"; do
+    local qmake_bin=""
+    if [[ "$candidate" == */* ]]; then
+      if [[ -x "$candidate" ]]; then
+        qmake_bin="$candidate"
+      fi
+    else
+      qmake_bin="$(command -v "$candidate" 2>/dev/null || true)"
+    fi
+
+    if [[ -z "$qmake_bin" ]]; then
+      continue
+    fi
+
+    local qt_version
+    qt_version="$("$qmake_bin" -query QT_VERSION 2>/dev/null || true)"
+    if [[ "$qt_version" == 6* ]]; then
+      export QMAKE="$qmake_bin"
+      echo "Using Qt6 qmake: $QMAKE (QT_VERSION=$qt_version)"
+      return 0
+    fi
+  done
+
+  echo "Could not find a Qt6 qmake binary." >&2
+  echo "Install Qt6 tools and ensure one of these exists: qmake6, qmake-qt6, /usr/lib/qt6/bin/qmake." >&2
+  return 1
+}
+
 require_cmd cmake
 require_cmd find
 
@@ -90,6 +135,7 @@ esac
 LINUXDEPLOY_BIN=""
 LINUXDEPLOY_QT_PLUGIN_BIN=""
 resolve_linuxdeploy_tools "$ARCH"
+resolve_qmake_qt6
 
 if [[ ! -f "$DESKTOP_FILE" ]]; then
   echo "Desktop file not found: $DESKTOP_FILE" >&2
@@ -114,6 +160,7 @@ DESTDIR="$APPDIR" cmake --install "$BUILD_DIR" --prefix /usr
 echo "[4/5] Bundle AppDir"
 mkdir -p "$OUT_DIR"
 export VERSION
+export LINUXDEPLOY_OUTPUT_VERSION="$VERSION"
 "$LINUXDEPLOY_BIN" \
   --appdir "$APPDIR" \
   --desktop-file "$DESKTOP_FILE" \
