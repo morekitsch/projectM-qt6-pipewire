@@ -21,6 +21,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFormLayout>
+#include <QGridLayout>
 #include <QGroupBox>
 #include <QHeaderView>
 #include <QHBoxLayout>
@@ -34,6 +35,7 @@
 #include <QRegularExpression>
 #include <QSignalBlocker>
 #include <QSettings>
+#include <QSizePolicy>
 #include <QStringList>
 #include <QSpinBox>
 #include <QSplitter>
@@ -95,6 +97,17 @@ QString detectUpscalerPresetId(int scalePercent, double sharpness) {
   return QStringLiteral("custom");
 }
 
+void allowHorizontalShrink(QWidget *widget) {
+  if (widget == nullptr) {
+    return;
+  }
+
+  QSizePolicy policy = widget->sizePolicy();
+  policy.setHorizontalPolicy(QSizePolicy::Preferred);
+  widget->setSizePolicy(policy);
+  widget->setMinimumWidth(0);
+}
+
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
@@ -142,22 +155,29 @@ void MainWindow::buildUi() {
   auto *mainTab = new QWidget(tabs);
   auto *mainTabLayout = new QVBoxLayout(mainTab);
 
-  auto *topControls = new QHBoxLayout();
+  auto *topControls = new QGridLayout();
   m_presetDirectoryEdit = new QLineEdit(mainTab);
   m_presetDirectoryEdit->setReadOnly(true);
   auto *browseButton = new QPushButton(QStringLiteral("Choose Preset Directory"), mainTab);
   m_presetSearchEdit = new QLineEdit(mainTab);
   m_presetSearchEdit->setPlaceholderText(QStringLiteral("Search name/tags..."));
   m_favoritesOnlyCheck = new QCheckBox(QStringLiteral("Favorites only"), mainTab);
+  allowHorizontalShrink(browseButton);
+  allowHorizontalShrink(m_favoritesOnlyCheck);
 
-  topControls->addWidget(new QLabel(QStringLiteral("Presets:"), mainTab));
-  topControls->addWidget(m_presetDirectoryEdit, 1);
-  topControls->addWidget(browseButton);
-  topControls->addWidget(m_presetSearchEdit);
-  topControls->addWidget(m_favoritesOnlyCheck);
+  topControls->setColumnStretch(0, 1);
+  topControls->setColumnStretch(1, 3);
+  topControls->addWidget(new QLabel(QStringLiteral("Presets:"), mainTab), 0, 0);
+  topControls->addWidget(m_presetDirectoryEdit, 0, 1);
+  topControls->addWidget(browseButton, 0, 2);
+  topControls->addWidget(m_presetSearchEdit, 1, 0, 1, 2);
+  topControls->addWidget(m_favoritesOnlyCheck, 1, 2);
   mainTabLayout->addLayout(topControls);
 
   auto *splitter = new QSplitter(Qt::Horizontal, mainTab);
+  splitter->setChildrenCollapsible(true);
+  splitter->setStretchFactor(0, 3);
+  splitter->setStretchFactor(1, 2);
   mainTabLayout->addWidget(splitter, 1);
 
   auto *presetPane = new QWidget(splitter);
@@ -178,28 +198,38 @@ void MainWindow::buildUi() {
   m_presetTable->sortByColumn(1, Qt::DescendingOrder);
   presetLayout->addWidget(m_presetTable, 1);
 
-  auto *presetButtons = new QHBoxLayout();
+  auto *presetButtons = new QGridLayout();
   auto *loadPresetButton = new QPushButton(QStringLiteral("Load Preset"), presetPane);
   auto *addPresetButton = new QPushButton(QStringLiteral("Add to Playlist"), presetPane);
   auto *importMetadataButton = new QPushButton(QStringLiteral("Import Metadata"), presetPane);
   auto *exportMetadataButton = new QPushButton(QStringLiteral("Export Metadata"), presetPane);
-  presetButtons->addWidget(loadPresetButton);
-  presetButtons->addWidget(addPresetButton);
-  presetButtons->addWidget(importMetadataButton);
-  presetButtons->addWidget(exportMetadataButton);
+  allowHorizontalShrink(loadPresetButton);
+  allowHorizontalShrink(addPresetButton);
+  allowHorizontalShrink(importMetadataButton);
+  allowHorizontalShrink(exportMetadataButton);
+  presetButtons->setColumnStretch(0, 1);
+  presetButtons->setColumnStretch(1, 1);
+  presetButtons->addWidget(loadPresetButton, 0, 0);
+  presetButtons->addWidget(addPresetButton, 0, 1);
+  presetButtons->addWidget(importMetadataButton, 1, 0);
+  presetButtons->addWidget(exportMetadataButton, 1, 1);
   presetLayout->addLayout(presetButtons);
 
   auto *rightPane = new QWidget(splitter);
   auto *rightLayout = new QVBoxLayout(rightPane);
 
-  auto *previewControls = new QHBoxLayout();
+  auto *previewControls = new QGridLayout();
   m_previewFloatButton = new QPushButton(QStringLiteral("Float Preview"), rightPane);
   m_previewFullscreenButton = new QPushButton(QStringLiteral("Fullscreen Preview"), rightPane);
   m_showFpsCheck = new QCheckBox(QStringLiteral("Show FPS"), rightPane);
-  previewControls->addWidget(m_previewFloatButton);
-  previewControls->addWidget(m_previewFullscreenButton);
-  previewControls->addWidget(m_showFpsCheck);
-  previewControls->addStretch(1);
+  allowHorizontalShrink(m_previewFloatButton);
+  allowHorizontalShrink(m_previewFullscreenButton);
+  allowHorizontalShrink(m_showFpsCheck);
+  previewControls->setColumnStretch(0, 1);
+  previewControls->setColumnStretch(1, 1);
+  previewControls->addWidget(m_previewFloatButton, 0, 0);
+  previewControls->addWidget(m_previewFullscreenButton, 0, 1);
+  previewControls->addWidget(m_showFpsCheck, 1, 0, 1, 2);
   rightLayout->addLayout(previewControls);
 
   auto *nowPlayingGroup = new QGroupBox(QStringLiteral("Now Playing"), rightPane);
@@ -226,7 +256,7 @@ void MainWindow::buildUi() {
   auto *playlistGroup = new QGroupBox(QStringLiteral("Playlist (Ordered Two-Column List)"), rightPane);
   auto *playlistLayout = new QVBoxLayout(playlistGroup);
 
-  auto *playlistTop = new QHBoxLayout();
+  auto *playlistTop = new QVBoxLayout();
   m_playlistNameEdit = new QLineEdit(playlistGroup);
   m_playlistNameEdit->setPlaceholderText(QStringLiteral("Playlist name"));
   auto *savePlaylistButton = new QPushButton(QStringLiteral("Save"), playlistGroup);
@@ -234,13 +264,25 @@ void MainWindow::buildUi() {
   auto *loadPlaylistButton = new QPushButton(QStringLiteral("Load"), playlistGroup);
   auto *importPlaylistButton = new QPushButton(QStringLiteral("Import JSON"), playlistGroup);
   auto *exportPlaylistButton = new QPushButton(QStringLiteral("Export JSON"), playlistGroup);
+  allowHorizontalShrink(savePlaylistButton);
+  allowHorizontalShrink(m_playlistPicker);
+  allowHorizontalShrink(loadPlaylistButton);
+  allowHorizontalShrink(importPlaylistButton);
+  allowHorizontalShrink(exportPlaylistButton);
 
-  playlistTop->addWidget(m_playlistNameEdit);
-  playlistTop->addWidget(savePlaylistButton);
-  playlistTop->addWidget(m_playlistPicker);
-  playlistTop->addWidget(loadPlaylistButton);
-  playlistTop->addWidget(importPlaylistButton);
-  playlistTop->addWidget(exportPlaylistButton);
+  auto *playlistNameRow = new QHBoxLayout();
+  playlistNameRow->addWidget(m_playlistNameEdit, 1);
+  playlistNameRow->addWidget(savePlaylistButton);
+  auto *playlistLoadRow = new QHBoxLayout();
+  playlistLoadRow->addWidget(m_playlistPicker, 1);
+  playlistLoadRow->addWidget(loadPlaylistButton);
+  auto *playlistImportExportRow = new QHBoxLayout();
+  playlistImportExportRow->addWidget(importPlaylistButton);
+  playlistImportExportRow->addWidget(exportPlaylistButton);
+  playlistImportExportRow->addStretch(1);
+  playlistTop->addLayout(playlistNameRow);
+  playlistTop->addLayout(playlistLoadRow);
+  playlistTop->addLayout(playlistImportExportRow);
   playlistLayout->addLayout(playlistTop);
 
   m_playlistTable = new QTableView(playlistGroup);
@@ -256,6 +298,10 @@ void MainWindow::buildUi() {
   auto *upButton = new QPushButton(QStringLiteral("Move Up"), playlistGroup);
   auto *downButton = new QPushButton(QStringLiteral("Move Down"), playlistGroup);
   auto *clearButton = new QPushButton(QStringLiteral("Clear"), playlistGroup);
+  allowHorizontalShrink(removeButton);
+  allowHorizontalShrink(upButton);
+  allowHorizontalShrink(downButton);
+  allowHorizontalShrink(clearButton);
 
   playlistButtons->addWidget(removeButton);
   playlistButtons->addWidget(upButton);
@@ -263,16 +309,21 @@ void MainWindow::buildUi() {
   playlistButtons->addWidget(clearButton);
   playlistLayout->addLayout(playlistButtons);
 
-  auto *playbackControls = new QHBoxLayout();
+  auto *playbackControls = new QVBoxLayout();
   auto *prevButton = new QPushButton(QStringLiteral("Prev"), playlistGroup);
   m_playPauseButton = new QPushButton(QStringLiteral("Play"), playlistGroup);
   auto *nextButton = new QPushButton(QStringLiteral("Next"), playlistGroup);
   m_shuffleCheck = new QCheckBox(QStringLiteral("Shuffle"), playlistGroup);
+  allowHorizontalShrink(prevButton);
+  allowHorizontalShrink(m_playPauseButton);
+  allowHorizontalShrink(nextButton);
+  allowHorizontalShrink(m_shuffleCheck);
 
   m_autoAdvanceModeCombo = new QComboBox(playlistGroup);
   m_autoAdvanceModeCombo->addItems(
       QStringList{QStringLiteral("None"), QStringLiteral("Duration"), QStringLiteral("Beat Count")});
   m_autoAdvanceModeCombo->setCurrentIndex(1);
+  allowHorizontalShrink(m_autoAdvanceModeCombo);
 
   m_autoDurationSecondsSpin = new QSpinBox(playlistGroup);
   m_autoDurationSecondsSpin->setRange(2, 3600);
@@ -286,18 +337,26 @@ void MainWindow::buildUi() {
   m_autoBeatThresholdSpin->setValue(0.12);
   m_autoBeatThresholdSpin->setSingleStep(0.01);
 
-  playbackControls->addWidget(prevButton);
-  playbackControls->addWidget(m_playPauseButton);
-  playbackControls->addWidget(nextButton);
-  playbackControls->addWidget(m_shuffleCheck);
-  playbackControls->addWidget(new QLabel(QStringLiteral("Advance"), playlistGroup));
-  playbackControls->addWidget(m_autoAdvanceModeCombo);
-  playbackControls->addWidget(new QLabel(QStringLiteral("Seconds"), playlistGroup));
-  playbackControls->addWidget(m_autoDurationSecondsSpin);
-  playbackControls->addWidget(new QLabel(QStringLiteral("Beats"), playlistGroup));
-  playbackControls->addWidget(m_autoBeatCountSpin);
-  playbackControls->addWidget(new QLabel(QStringLiteral("Beat Threshold"), playlistGroup));
-  playbackControls->addWidget(m_autoBeatThresholdSpin);
+  auto *transportRow = new QHBoxLayout();
+  transportRow->addWidget(prevButton);
+  transportRow->addWidget(m_playPauseButton);
+  transportRow->addWidget(nextButton);
+  transportRow->addWidget(m_shuffleCheck);
+  transportRow->addStretch(1);
+  auto *timingRow = new QHBoxLayout();
+  timingRow->addWidget(new QLabel(QStringLiteral("Advance"), playlistGroup));
+  timingRow->addWidget(m_autoAdvanceModeCombo, 1);
+  timingRow->addWidget(new QLabel(QStringLiteral("Seconds"), playlistGroup));
+  timingRow->addWidget(m_autoDurationSecondsSpin);
+  auto *beatRow = new QHBoxLayout();
+  beatRow->addWidget(new QLabel(QStringLiteral("Beats"), playlistGroup));
+  beatRow->addWidget(m_autoBeatCountSpin);
+  beatRow->addWidget(new QLabel(QStringLiteral("Beat Threshold"), playlistGroup));
+  beatRow->addWidget(m_autoBeatThresholdSpin);
+  beatRow->addStretch(1);
+  playbackControls->addLayout(transportRow);
+  playbackControls->addLayout(timingRow);
+  playbackControls->addLayout(beatRow);
   playlistLayout->addLayout(playbackControls);
 
   rightLayout->addWidget(playlistGroup, 3);
@@ -337,8 +396,11 @@ void MainWindow::buildUi() {
   m_gpuPreferenceCombo->addItem(QStringLiteral("Discrete GPU (dGPU)"), QStringLiteral("dgpu"));
   m_gpuPreferenceCombo->addItem(QStringLiteral("Integrated GPU (iGPU)"), QStringLiteral("igpu"));
   m_audioDeviceCombo = new QComboBox(settingsTab);
-  m_audioDeviceCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+  m_audioDeviceCombo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+  m_audioDeviceCombo->setMinimumContentsLength(20);
   m_refreshAudioDevicesButton = new QPushButton(QStringLiteral("Refresh"), settingsTab);
+  allowHorizontalShrink(m_audioDeviceCombo);
+  allowHorizontalShrink(m_refreshAudioDevicesButton);
 
   auto *audioDeviceRowWidget = new QWidget(settingsTab);
   auto *audioDeviceRowLayout = new QHBoxLayout(audioDeviceRowWidget);
@@ -387,8 +449,9 @@ void MainWindow::buildUi() {
   m_visualizerContainer = QWidget::createWindowContainer(m_visualizerWidget, m_previewDock);
   m_visualizerContainer->setFocusPolicy(Qt::StrongFocus);
   m_visualizerContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  m_visualizerContainer->setMinimumWidth(0);
   m_previewDock->setWidget(m_visualizerContainer);
-  m_previewDock->setMinimumWidth(420);
+  m_previewDock->setMinimumWidth(240);
   addDockWidget(Qt::RightDockWidgetArea, m_previewDock);
   resizeDocks({m_previewDock}, {520}, Qt::Horizontal);
   m_previewHiddenTitleBar = new QWidget(m_previewDock);

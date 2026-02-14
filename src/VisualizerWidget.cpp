@@ -93,7 +93,7 @@ QOpenGLFunctions_3_3_Core *core33Functions() {
 
 VisualizerWidget::VisualizerWidget(ProjectMEngine *engine, QWindow *parent)
     : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent), m_engine(engine) {
-  setMinimumSize(QSize(420, 240));
+  setMinimumSize(QSize(240, 135));
 
   m_refreshTimer = new QTimer(this);
   m_refreshTimer->setInterval(16);

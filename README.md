@@ -41,6 +41,14 @@ The selected input is persisted and reused on next launches.
   `__NV_PRIME_RENDER_OFFLOAD` / `__GLX_VENDOR_LIBRARY_NAME`) when those vars are not already set externally.
 - You can override GPU choice per launch with `QT6MPLAYER_GPU=auto|dgpu|igpu`.
 
+### Preset Packs
+
+`qt6mplayer` does not bundle presets. These upstream collections are good starting points:
+
+- [`presets-cream-of-the-crop`](https://github.com/projectM-visualizer/presets-cream-of-the-crop): large curated set (around 10,000 presets) assembled by Jason Fletcher; this is the default preset pack used by projectM.
+- [`presets-projectm-classic`](https://github.com/projectM-visualizer/presets-projectm-classic): legacy preset collection from the original MilkDrop/Winamp era, maintained as a separate pack for projectM users.
+- [`presets-en-d`](https://github.com/projectM-visualizer/presets-en-d): compact set (about 50 presets) created by En D.
+
 ## For Developers
 
 ### Build From Source
