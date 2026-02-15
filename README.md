@@ -4,6 +4,14 @@ Qt6 desktop shell for [`projectM`](https://github.com/projectM-visualizer/projec
 
 ![qt6mplayer screenshot](qt6-projectM-pipewire.png)
 
+## projectM Integration
+
+- This app links against the upstream `libprojectM-4` shared library and uses the official C API.
+- projectM source code is not vendored or forked in this repository.
+- AppImage releases bundle the shared library for portability, but the library is unmodified.
+
+Details: `docs/PROJECTM-INTEGRATION.md`
+
 ## For Users
 
 ### Download
