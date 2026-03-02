@@ -80,6 +80,7 @@ private:
   void refreshPlaylistNames();
   void updatePresetDirectory(const QString &path);
   QModelIndex selectedPresetSourceIndex() const;
+  void playNextPresetInBrowser();
   bool loadPlaylistRow(int row);
   void updateNowPlayingPanel(const QString &presetPath);
   PresetMetadata currentNowPlayingMetadata() const;

@@ -3,6 +3,7 @@
 #include <QOpenGLFunctions>
 #include <QOpenGLWindow>
 #include <QElapsedTimer>
+#include <QString>
 #include <QResizeEvent>
 #include <QSize>
 #include <QVector>
@@ -22,6 +23,7 @@ public Q_SLOTS:
   void setFpsDisplayEnabled(bool enabled);
   void setRenderScalePercent(int percent);
   void setUpscaleSharpness(double amount);
+  void showPresetOverlay(const QString &presetPath);
 
 protected:
   void initializeGL() override;
@@ -55,4 +57,7 @@ private:
   unsigned int m_upscaleColorTexture = 0;
   int m_upscaleTargetWidth = 0;
   int m_upscaleTargetHeight = 0;
+  QString m_presetOverlayText;
+  QElapsedTimer m_presetOverlayTimer;
+  int m_presetOverlayDurationMs = 1800;
 };

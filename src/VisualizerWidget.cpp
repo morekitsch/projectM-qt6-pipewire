@@ -3,6 +3,7 @@
 #include "ProjectMEngine.h"
 
 #include <QDebug>
+#include <QFileInfo>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions_3_3_Core>
 #include <QOpenGLVersionFunctionsFactory>
@@ -138,6 +139,20 @@ void VisualizerWidget::setUpscaleSharpness(double amount) {
     return;
   }
   m_upscaleSharpness = clamped;
+  update();
+}
+
+void VisualizerWidget::showPresetOverlay(const QString &presetPath) {
+  QString displayName = QFileInfo(presetPath).completeBaseName();
+  if (displayName.isEmpty()) {
+    displayName = QFileInfo(presetPath).fileName();
+  }
+  if (displayName.isEmpty()) {
+    return;
+  }
+
+  m_presetOverlayText = displayName;
+  m_presetOverlayTimer.restart();
   update();
 }
 
@@ -290,6 +305,23 @@ void VisualizerWidget::paintGL() {
     painter.setPen(QColor(235, 235, 235));
     painter.drawText(drawRect.adjusted(0, 8, -10, 0), Qt::AlignTop | Qt::AlignRight,
                      QStringLiteral("FPS: %1").arg(QString::number(m_fpsValue, 'f', 1)));
+  }
+
+  if (!m_presetOverlayText.isEmpty() && m_presetOverlayTimer.isValid() &&
+      m_presetOverlayTimer.elapsed() < m_presetOverlayDurationMs) {
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    const QString text = QStringLiteral("Preset: %1").arg(m_presetOverlayText);
+    const QRect textRect = painter.fontMetrics().boundingRect(text).adjusted(-10, -6, 10, 6);
+    const QRect bubbleRect = textRect.translated(14, height() - textRect.height() - 18);
+
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor(10, 14, 20, 190));
+    painter.drawRoundedRect(bubbleRect, 8, 8);
+
+    painter.setPen(QColor(230, 240, 255));
+    painter.drawText(bubbleRect, Qt::AlignCenter, text);
+  } else if (!m_presetOverlayText.isEmpty() && m_presetOverlayTimer.isValid()) {
+    m_presetOverlayText.clear();
   }
 }
 

@@ -599,6 +599,14 @@ void MainWindow::buildUi() {
       togglePreviewFullscreen();
     }
   });
+
+  auto *nextPresetShortcut = new QShortcut(QKeySequence(Qt::Key_BracketRight), this);
+  nextPresetShortcut->setContext(Qt::ApplicationShortcut);
+  connect(nextPresetShortcut, &QShortcut::activated, this, &MainWindow::playNextPresetInBrowser);
+
+  auto *nextPresetMediaShortcut = new QShortcut(QKeySequence(Qt::Key_MediaNext), this);
+  nextPresetMediaShortcut->setContext(Qt::ApplicationShortcut);
+  connect(nextPresetMediaShortcut, &QShortcut::activated, this, &MainWindow::playNextPresetInBrowser);
 }
 
 void MainWindow::wireSignals() {
@@ -808,6 +816,46 @@ void MainWindow::loadSelectedPreset() {
   const QString path = m_presetModel->presetPathForRow(sourceIndex.row());
   if (!m_projectMEngine->loadPreset(path)) {
     setStatus(QStringLiteral("Unable to load preset."));
+  }
+}
+
+void MainWindow::playNextPresetInBrowser() {
+  const int rowCount = m_presetProxyModel->rowCount();
+  if (rowCount <= 0) {
+    setStatus(QStringLiteral("No presets available."));
+    return;
+  }
+
+  int currentRow = -1;
+  const QModelIndex currentProxyIndex = m_presetTable->currentIndex();
+  if (currentProxyIndex.isValid()) {
+    currentRow = currentProxyIndex.row();
+  } else if (!m_currentPresetPath.isEmpty()) {
+    const int currentSourceRow = m_presetModel->rowForPresetPath(m_currentPresetPath);
+    if (currentSourceRow >= 0) {
+      const QModelIndex sourceIndex = m_presetModel->index(currentSourceRow, 0);
+      const QModelIndex mappedIndex = m_presetProxyModel->mapFromSource(sourceIndex);
+      if (mappedIndex.isValid()) {
+        currentRow = mappedIndex.row();
+      }
+    }
+  }
+
+  const int nextRow = (currentRow + 1 + rowCount) % rowCount;
+  const QModelIndex nextProxyIndex = m_presetProxyModel->index(nextRow, 0);
+  if (!nextProxyIndex.isValid()) {
+    setStatus(QStringLiteral("Failed to select next preset."));
+    return;
+  }
+
+  m_presetTable->setCurrentIndex(nextProxyIndex);
+  m_presetTable->selectRow(nextRow);
+  m_presetTable->scrollTo(nextProxyIndex, QAbstractItemView::PositionAtCenter);
+
+  const QModelIndex nextSourceIndex = m_presetProxyModel->mapToSource(nextProxyIndex);
+  const QString presetPath = m_presetModel->presetPathForRow(nextSourceIndex.row());
+  if (!m_projectMEngine->loadPreset(presetPath)) {
+    setStatus(QStringLiteral("Unable to load next preset."));
   }
 }
 
@@ -1103,6 +1151,9 @@ void MainWindow::onAudioFrameForPlayback(const QVector<float> &monoFrame) {
 
 void MainWindow::onPresetActivated(const QString &presetPath) {
   m_currentPresetPath = presetPath;
+  if (m_visualizerWidget != nullptr) {
+    m_visualizerWidget->showPresetOverlay(presetPath);
+  }
   updateNowPlayingPanel(presetPath);
 }
 
